@@ -68,6 +68,7 @@ fun PremiumLauncher(apps: List<LauncherApp>, store: LauncherStore) {
     val haptics = LocalHapticFeedback.current
     val settings = remember { LayoutManager(context) }
     var settingsOpen by remember { mutableStateOf(false) }
+    var widgetsOpen by remember { mutableStateOf(false) }
     var settingsVersion by remember { mutableIntStateOf(0) }
     var folders by remember { mutableStateOf(settings.folders()) }
     var openFolderId by remember { mutableStateOf<String?>(null) }
@@ -136,11 +137,12 @@ fun PremiumLauncher(apps: List<LauncherApp>, store: LauncherStore) {
     val homeKeys = home.orEmpty().filter { (it in byKey || folders.any { folder -> folder.token == it }) && it !in dock.orEmpty() }
     val pageCount = maxOf(1, (homeKeys.size + APPS_PER_PAGE - 1) / APPS_PER_PAGE)
     val pager = rememberPagerState(pageCount = { pageCount })
-    BackHandler(editing || libraryOpen || previewOpen || settingsOpen || openFolderId != null || pager.currentPage > 0) {
+    BackHandler(editing || libraryOpen || previewOpen || settingsOpen || widgetsOpen || openFolderId != null || pager.currentPage > 0) {
         when {
             previewOpen -> previewOpen = false
             openFolderId != null -> openFolderId = null
             settingsOpen -> settingsOpen = false
+            widgetsOpen -> widgetsOpen = false
             libraryOpen -> { libraryOpen = false; search = "" }
             editing -> editing = false
             else -> scope.launch { pager.animateScrollToPage(0) }
@@ -169,7 +171,10 @@ fun PremiumLauncher(apps: List<LauncherApp>, store: LauncherStore) {
                     if (editing) {
                         CircleAction("Done") { editing = false }
                         Text("Edit Home Screen", color = ink, fontSize = 13.sp, fontWeight = FontWeight.Medium)
-                        CircleAction("＋") { libraryOpen = true }
+                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            CircleAction("Widgets") { widgetsOpen = true }
+                            CircleAction("＋") { libraryOpen = true }
+                        }
                     } else {
                         Spacer(Modifier.width(38.dp))
                         Spacer(Modifier.weight(1f))
@@ -416,6 +421,9 @@ Box(
                 },
                 confirmButton = { TextButton(onClick = { optionsFor = null }) { Text("Done") } }
             )
+        }
+        if (widgetsOpen) {
+            WidgetPanel(onClose = { widgetsOpen = false })
         }
         if (settingsOpen) {
             LauncherSettings(settings) {
