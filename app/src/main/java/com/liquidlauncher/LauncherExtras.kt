@@ -17,12 +17,16 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import android.content.Intent
+import android.provider.Settings
+import androidx.compose.ui.platform.LocalContext
 
 @Composable
 fun LauncherSettings(
     manager: LayoutManager,
     onClose: () -> Unit
 ) {
+    val context = LocalContext.current
     var labels by remember { mutableStateOf(manager.showLabels) }
     var scrim by remember { mutableStateOf(manager.darkScrim) }
     var haptics by remember { mutableStateOf(manager.haptics) }
@@ -58,6 +62,11 @@ fun LauncherSettings(
                     onValueChangeFinished = { manager.iconSize = size.toInt() }
                 )
                 Text("Changes are saved on your device.", fontSize = 12.sp)
+                Spacer(Modifier.height(8.dp))
+                TextButton(onClick = {
+                    context.startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
+                }) { Text("Set up notification badges") }
+                Text("Notification access is optional and controlled in Android Settings.", fontSize = 11.sp)
             }
         },
         confirmButton = { TextButton(onClick = onClose) { Text("Done") } }
