@@ -201,7 +201,7 @@ fun PremiumLauncher(apps: List<LauncherApp>, store: LauncherStore) {
                                                 val cellPx = with(density) { cellWidth.toPx() }
                                                 val rowPx = with(density) { cellHeight.toPx() }
                                                 val activeScale by animateFloatAsState(if (dragging) 1.12f else 1f, animationSpec = spring(), label = "Drag scale")
-                                                val gesture = Modifier.pointerInput(app.key, editing, page, homeKeys) {
+                                                val gesture = Modifier.pointerInput(app.key, page) {
                                                     detectDragGesturesAfterLongPress(
                                                         onDragStart = { editing = true; dragging = true; haptics.performHapticFeedback(HapticFeedbackType.LongPress) },
                                                         onDrag = { change, delta ->
