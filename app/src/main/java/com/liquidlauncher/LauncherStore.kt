@@ -4,6 +4,7 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.content.pm.ApplicationInfo
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.drawable.Drawable
@@ -15,7 +16,8 @@ data class LauncherApp(
     val packageName: String,
     val activityName: String,
     val label: String,
-    val icon: Drawable
+    val icon: Drawable,
+    val category: String = "Other"
 )
 
 class LauncherStore(private val context: Context) {
@@ -39,7 +41,16 @@ class LauncherStore(private val context: Context) {
                     packageName = it.activityInfo.packageName,
                     activityName = it.activityInfo.name,
                     label = it.loadLabel(pm).toString(),
-                    icon = it.loadIcon(pm)
+                    icon = it.loadIcon(pm),
+                    category = when (it.activityInfo.applicationInfo.category) {
+                        ApplicationInfo.CATEGORY_GAME -> "Games"
+                        ApplicationInfo.CATEGORY_AUDIO, ApplicationInfo.CATEGORY_VIDEO, ApplicationInfo.CATEGORY_IMAGE -> "Media"
+                        ApplicationInfo.CATEGORY_SOCIAL -> "Social"
+                        ApplicationInfo.CATEGORY_PRODUCTIVITY -> "Productivity"
+                        ApplicationInfo.CATEGORY_NEWS -> "News"
+                        ApplicationInfo.CATEGORY_MAPS -> "Travel"
+                        else -> "Other"
+                    }
                 )
             }
             .distinctBy { it.key }
