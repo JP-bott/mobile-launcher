@@ -67,6 +67,12 @@ fun LauncherSettings(
                     onValueChangeFinished = { manager.iconSize = size.toInt() }
                 )
                 Text("Changes are saved on your device.", fontSize = 12.sp)
+                TextButton(onClick = {
+                    runCatching { context.startActivity(Intent(Settings.ACTION_HOME_SETTINGS)) }
+                }) { Text("Choose default Home app") }
+                TextButton(onClick = {
+                    runCatching { context.startActivity(Intent(Intent.ACTION_SET_WALLPAPER)) }
+                }) { Text("Change system wallpaper") }
                 Spacer(Modifier.height(8.dp))
                 TextButton(onClick = {
                     context.startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
