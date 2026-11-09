@@ -5,6 +5,8 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -32,9 +34,12 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -58,6 +63,7 @@ private const val APPS_PER_PAGE = 20
 fun PremiumLauncher(apps: List<LauncherApp>, store: LauncherStore) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+    val haptics = LocalHapticFeedback.current
     val byKey = remember(apps) { apps.associateBy { it.key } }
     var home by remember { mutableStateOf(store.loadKeys("home")) }
     var dock by remember { mutableStateOf(store.loadKeys("dock")) }
@@ -194,9 +200,10 @@ fun PremiumLauncher(apps: List<LauncherApp>, store: LauncherStore) {
                                                 var dragging by remember(app.key) { mutableStateOf(false) }
                                                 val cellPx = with(density) { cellWidth.toPx() }
                                                 val rowPx = with(density) { cellHeight.toPx() }
+                                                val activeScale by animateFloatAsState(if (dragging) 1.12f else 1f, animationSpec = spring(), label = "Drag scale")
                                                 val gesture = Modifier.pointerInput(app.key, editing, page, homeKeys) {
                                                     detectDragGesturesAfterLongPress(
-                                                        onDragStart = { editing = true; dragging = true },
+                                                        onDragStart = { editing = true; dragging = true; haptics.performHapticFeedback(HapticFeedbackType.LongPress) },
                                                         onDrag = { change, delta ->
                                                             change.consume()
                                                             dragX += delta.x
@@ -228,6 +235,7 @@ fun PremiumLauncher(apps: List<LauncherApp>, store: LauncherStore) {
                                                     onOptions = { optionsFor = app },
                                                     modifier = gesture
                                                         .offset { IntOffset(dragX.roundToInt(), dragY.roundToInt()) }
+                                                        .graphicsLayer { scaleX = activeScale; scaleY = activeScale }
                                                         .zIndex(if (dragging) 10f else 0f)
                                                 )
                                             }
