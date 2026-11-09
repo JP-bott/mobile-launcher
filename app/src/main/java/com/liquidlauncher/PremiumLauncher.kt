@@ -37,6 +37,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.input.pointer.pointerInput
@@ -83,6 +84,7 @@ fun PremiumLauncher(apps: List<LauncherApp>, store: LauncherStore) {
     var optionsFor by remember { mutableStateOf<LauncherApp?>(null) }
     var search by remember { mutableStateOf("") }
     var selectedCategory by remember { mutableStateOf("All") }
+    val tintedIcons = remember(settingsVersion) { settings.tintIcons }
     val appearance = remember(settingsVersion) {
         Triple(settings.showLabels, settings.darkScrim, settings.iconSize)
     }
@@ -202,7 +204,7 @@ fun PremiumLauncher(apps: List<LauncherApp>, store: LauncherStore) {
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         if (page == 0) {
-                            CompactDateHeader()
+                            CompactDateHeader(onSearch = { libraryOpen = true })
                         } else Spacer(Modifier.height(26.dp))
 
                         BoxWithConstraints(Modifier.fillMaxSize()) {
@@ -270,6 +272,7 @@ fun PremiumLauncher(apps: List<LauncherApp>, store: LauncherStore) {
                                                         editing = editing,
                                                         showLabel = appearance.first,
                                                         iconSize = appearance.third,
+                                                        tinted = tintedIcons,
                                                         onClick = { launch(app) },
                                                         onOptions = { optionsFor = app },
                                                         modifier = gesture
@@ -338,7 +341,7 @@ Box(
                         dock.orEmpty().mapNotNull { byKey[it] }.forEach { app ->
                             Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
                                 HomeIcon(
-                                    app = app, editing = editing, showLabel = false, iconSize = appearance.third,
+                                    app = app, editing = editing, showLabel = false, iconSize = appearance.third, tinted = tintedIcons,
                                     onClick = { launch(app) },
                                     onOptions = { optionsFor = app }
                                 )
@@ -539,11 +542,20 @@ private fun CircleAction(text: String, onClick: () -> Unit) {
 }
 
 @Composable
-private fun CompactDateHeader() {
+private fun CompactDateHeader(onSearch: () -> Unit) {
     val now = liveClock()
     val date = remember(now) { SimpleDateFormat("EEEE, MMMM d", Locale.getDefault()).format(now) }
+    var downSwipe by remember { mutableFloatStateOf(0f) }
     Row(
-        Modifier.fillMaxWidth().height(66.dp).padding(horizontal = 16.dp, vertical = 7.dp),
+        Modifier.fillMaxWidth().height(66.dp)
+            .pointerInput(Unit) {
+                detectVerticalDragGestures(
+                    onVerticalDrag = { _, drag -> downSwipe += drag },
+                    onDragEnd = { if (downSwipe > 65f) onSearch(); downSwipe = 0f },
+                    onDragCancel = { downSwipe = 0f }
+                )
+            }
+            .padding(horizontal = 16.dp, vertical = 7.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -564,7 +576,8 @@ private fun HomeIcon(
     onOptions: () -> Unit,
     modifier: Modifier = Modifier,
     showLabel: Boolean = true,
-    iconSize: Int = 61
+    iconSize: Int = 61,
+    tinted: Boolean = false
 ) {
     Column(
         modifier.clickable { onClick() }
@@ -576,9 +589,11 @@ private fun HomeIcon(
             Image(
                 bitmap = remember(app.key) { app.icon.bitmapForIcon(160).asImageBitmap() },
                 contentDescription = app.label,
+                colorFilter = if (tinted) ColorFilter.tint(Color.White) else null,
                 modifier = Modifier.size(iconSize.dp)
                     .shadow(3.dp, RoundedCornerShape(16.dp))
                     .clip(RoundedCornerShape(16.dp))
+                    .background(if (tinted) Color(0xFF4B76AF) else Color.Transparent)
             )
             val badgeCount = LauncherNotificationService.badgeCounts[app.packageName] ?: 0
             if (badgeCount > 0 && !editing) {
