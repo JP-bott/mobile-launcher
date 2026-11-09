@@ -546,6 +546,18 @@ private fun HomeIcon(
                     .shadow(3.dp, RoundedCornerShape(16.dp))
                     .clip(RoundedCornerShape(16.dp))
             )
+            val badgeCount = LauncherNotificationService.badgeCounts[app.packageName] ?: 0
+            if (badgeCount > 0 && !editing) {
+                Box(
+                    Modifier.offset(x = 6.dp, y = (-6).dp)
+                        .clip(CircleShape).background(Color(0xFFE54854))
+                        .padding(horizontal = 6.dp, vertical = 2.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(if (badgeCount > 99) "99+" else badgeCount.toString(),
+                        color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                }
+            }
             if (editing) {
                 Box(Modifier.offset(x = 5.dp, y = (-5).dp)
                     .size(20.dp).clip(CircleShape).background(Color(0xFFEB4B5B))
