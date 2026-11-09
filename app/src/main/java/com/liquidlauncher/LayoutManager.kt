@@ -54,6 +54,10 @@ class LayoutManager(context: Context) {
         get() = prefs.getBoolean("haptics", true)
         set(value) { prefs.edit().putBoolean("haptics", value).apply() }
 
+    var tintIcons: Boolean
+        get() = prefs.getBoolean("tint_icons", false)
+        set(value) { prefs.edit().putBoolean("tint_icons", value).apply() }
+
     var iconSize: Int
         get() = prefs.getInt("icon_size", 61).coerceIn(48, 70)
         set(value) { prefs.edit().putInt("icon_size", value.coerceIn(48, 70)).apply() }
