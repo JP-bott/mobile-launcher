@@ -1,40 +1,61 @@
-# Liquid Launcher • Premium Home UI (prototype)
+# Liquid Launcher 4.0 Preview
 
-A native Android home launcher built with **Kotlin + Jetpack Compose**, drawing inspiration from the layout and visual behavior of iOS home screens. This is not Apple iOS or an Apple product.
+A native Android home launcher, built with Kotlin and Jetpack Compose. Inspired by contemporary iOS home screen organization but using original styling and Android-native integrations.
 
-## Current interface
-- System wallpaper behind the home screen, using the Android wallpaper window feature
-- Four-column home screen with a compact date header
-- Up to five rows per page and horizontal home-screen swiping
-- Centered page indicator, floating Search button and fixed four-icon bottom dock
-- Long-press a home-screen icon to enter edit mode; drag within a page to reposition
-- Spring-scale lift animation and long-press haptic feedback when dragging
-- Red minus controls in edit mode to customize shortcuts
-- App Library overlay with searchable list of all launchable apps
-- Saved home icon order and dock shortcuts
-- Home app registration and installed-app refresh when launcher resumes
-- Simulated lock-screen preview with date, large clock and swipe-up dismissal (not device authentication)
+## Features
 
-## Build without Android Studio
-1. Visit [Build Android APK](https://github.com/JP-bott/mobile-launcher/actions/workflows/build-apk.yml).
-2. Open the newest successful workflow run.
-3. Scroll down to **Artifacts** and download `LiquidLauncher-debug-apk`.
-4. Extract the ZIP and install `app-debug.apk` on Android 8.0+.
+**Home**
+- Full-screen system wallpaper, with adjustable dark overlay
+- Swipeable four-column home pages and compact date header
+- Long-press icon edit mode, haptic feedback, spring lift, and position changes within or toward neighboring pages
+- Four-app dock with saved shortcuts, page dots and swipe-down App Library shortcut
+- Local persistence of home icons and dock ordering
 
-## Important limitations
-- The project is a **working prototype**, not a finished pixel-accurate replica of iOS 26.
-- No Apple proprietary icons, system assets, Control Center or real lock-screen replacement.
-- Dragging is supported **within one home page**. Cross-page dragging, folders, true Android widget hosting, icon themes and complete home-page editing are not yet implemented.
-- System wallpaper appearance may vary with OEM Android wallpaper and navigation settings.
-- A successful CI build verifies compilation, but **does not verify runtime behavior, FPS, battery life, visual quality or compatibility with your device**.
+**Folders**
+- Create an app folder from the app shortcut options menu; choose a second app to combine
+- Folder preview grid, rename, open apps and remove apps
+- Folder layout is saved locally
 
-## Device test checklist
-1. Open launcher and confirm the system wallpaper is visible.
-2. Launch an application and press Home to return.
-3. Long-press an icon, drag it to another grid position and tap Done.
-4. Restart the launcher to verify icon order and dock shortcuts remain saved.
-5. Swipe between pages and open Search/App Library.
-6. Enter and exit the simulated lock preview.
-7. Restore your original Home app in Android Settings if needed.
+**Apps and search**
+- Launch installed Android applications
+- Searchable App Library with Android-provided category filters
+- Refresh installed apps when launcher resumes
 
-For stability testing, keep the original launcher installed and available until this one has been tested on your phone.
+**Customization**
+- Adjustable icon size, labels, wallpaper darkness, optional monochrome icon effect, drag haptics
+- Quick access to Android's default Home-app selection and wallpaper selection
+
+**Android integrations**
+- Widget picker and separate native widget-hosting panel, launched from Home edit mode → Widgets
+- Optional notification badge counts. Enabling badges requires explicit Android notification access from the launcher settings.
+- Simulated lock-screen preview with date, large clock, and swipe-up dismissal; **not a replacement for Android's secure lock screen**
+
+## Build APK in GitHub
+
+1. Go to [GitHub Actions](https://github.com/JP-bott/mobile-launcher/actions/workflows/build-apk.yml).
+2. Open the newest workflow run with a green check.
+3. Confirm that **Run launcher unit tests**, **Build debug APK**, and **Upload APK** succeeded.
+4. Download the `LiquidLauncher-debug-apk` artifact from the run's **Artifacts** section.
+5. Extract `app-debug.apk` and install on Android 8.0 or newer.
+
+**Important:** GitHub-hosted debug builds may use different debug signing certificates in different runs. If Android reports that an update is incompatible, uninstall the previous debug version before installing the new one. This removes its saved layout/preferences. A stable release signing key should be set up privately before long-term use.
+
+## Quality and security notes
+
+- CI tests check the core pure-layout rules, then compile the APK. CI does **not** prove runtime correctness or 60 FPS across phones.
+- Notification text is not stored or transmitted by this app; only in-memory counts per package are used, with user-controlled notification listener permission.
+- The real system PIN, fingerprint, lock screen, status bar and Control Center remain controlled by Android.
+- The app uses the installed apps' real icons by default. Optional monochrome tint is an approximation, not Apple's icon assets.
+- No telemetry or account sign-in code is included.
+
+## Known limitations
+
+This is a preview build, not an exact iOS 26 replica or a production-ready launcher:
+- Folders are created through shortcut options, **not** by dwelling over another icon during drag.
+- Dragging between pages uses edge-based movement; it needs device testing.
+- Android widgets currently render in their own **Widgets panel**, not as freely placeable/resizable home-grid tiles.
+- Empty grid positions and custom page coordinates are not yet modeled. Pages use ordered app lists.
+- Gesture navigation, blurred background refraction and OEM/device performance still require device-specific testing.
+- The App Library categories use Android app metadata, which can be incomplete or inconsistent.
+
+Keep your existing Android home launcher installed as a fallback. To restore it, visit Android Settings → Default apps → Home app.
