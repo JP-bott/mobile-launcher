@@ -1,35 +1,35 @@
 # Liquid Launcher
 
-A Kotlin + Jetpack Compose Android home launcher with an **iOS 26-inspired** translucent interface. This is an independent Android app, not Apple iOS.
+A native Kotlin + Jetpack Compose Android launcher with an original, iOS 26-inspired translucent visual design.
 
-## Features
+## Current features
+- Horizontal swipe navigation between home-screen pages and a separate searchable **App Library**
+- Four-column app grid with app icons and labels
+- App shortcuts that launch installed Android applications
+- Clock/date card on the first home page
+- Bottom glass-style dock with up to four shortcuts
+- Long-press any app to add or remove it from Home and Dock, or change its order
+- Local persistence for home layout and dock shortcuts
+- App catalog refresh on activity resume
+- In-app simulated lock screen with large clock and swipe-up gesture
+- Atmospheric gradient wallpaper and translucent, softly outlined surfaces
 
-- Home screen displaying installed launchable apps in a four-column grid
-- Search field to filter apps by name
-- Tap app icons to launch Android applications
-- Translucent bottom dock with up to four shortcuts
-- **Long-press an app** to pin or remove it from the dock; selections are saved locally
-- Refresh installed-app listings periodically
-- Lock-screen-style preview with live time and date and a swipe-up gesture
+**Limitations:** This is not actual Apple iOS or an Apple launcher. App icons are the installed Android apps' original icons. The glass look currently uses transparency, gradients, and outlines; it does not implement true iOS 26 refraction or backdrop blur. The lock screen is an in-app **preview only** and does not replace or bypass Android device security. Full drag-and-drop icon placement, folders, widget hosting, and system wallpaper integration are not yet implemented.
 
-The lock screen is **only a preview**. It does not replace the Android system lock screen or provide authentication.
-
-## Build without Android Studio
-
+## Build APK without Android Studio
 1. Visit [GitHub Actions](https://github.com/JP-bott/mobile-launcher/actions/workflows/build-apk.yml).
-2. Select the latest **Build Android APK** run, or choose **Run workflow**.
-3. Wait for the run to finish with a green check.
-4. Under **Artifacts**, download `LiquidLauncher-debug-apk`.
-5. Extract the archive to obtain `app-debug.apk`.
-6. Transfer and install the APK on an Android phone (Android 8 or newer). Android may ask you to allow installs from your browser or file manager.
-7. Optionally select **Liquid Launcher** under **Settings → Apps → Default apps → Home app**.
+2. Open the newest **Build Android APK** run, or choose **Run workflow**.
+3. Confirm **Build debug APK** and **Upload APK** succeeded.
+4. Download the **LiquidLauncher-debug-apk** artifact and unzip it.
+5. Transfer `app-debug.apk` to your Android phone and install it.
 
-Only install an APK if the workflow succeeded. Debug APKs are intended for personal testing, not public release.
+## Testing
+- Start the app and verify installed applications appear.
+- Tap an app to launch it and use Android Home to return to the launcher.
+- Swipe horizontally to move between pages and reach App Library.
+- Long-press an icon to customize Home or Dock; close and reopen to confirm settings persist.
+- Open the Lock preview and swipe up to return.
+- Set Liquid Launcher as default under Android Settings → Default apps → Home app only after confirming it works on your device.
+- You can restore the original default launcher in Android Settings at any time.
 
-## Limitations and planned improvements
-
-The interface uses translucent colors and an original gradient wallpaper, not a genuine system-wide Liquid Glass renderer. More work is needed for icons and folder layout persistence, multiple home pages, widget hosting, wallpaper handling, work profiles, accessibility, performance, and device compatibility. The source has not yet been validated on a physical device.
-
-## If the build fails
-
-Open the latest GitHub Actions run and examine the first failed build step. This README does not imply that an APK has been built successfully.
+This project is a prototype. GitHub Actions compilation confirms a build only, not correct behavior on all devices. Debug builds are intended for testing, not store release.
