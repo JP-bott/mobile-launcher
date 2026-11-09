@@ -1,35 +1,40 @@
-# Liquid Launcher
+# Liquid Launcher • Premium Home UI (prototype)
 
-A native Kotlin + Jetpack Compose Android launcher with an original, iOS 26-inspired translucent visual design.
+A native Android home launcher built with **Kotlin + Jetpack Compose**, drawing inspiration from the layout and visual behavior of iOS home screens. This is not Apple iOS or an Apple product.
 
-## Current features
-- Horizontal swipe navigation between home-screen pages and a separate searchable **App Library**
-- Four-column app grid with app icons and labels
-- App shortcuts that launch installed Android applications
-- Clock/date card on the first home page
-- Bottom glass-style dock with up to four shortcuts
-- Long-press any app to add or remove it from Home and Dock, or change its order
-- Local persistence for home layout and dock shortcuts
-- App catalog refresh on activity resume
-- In-app simulated lock screen with large clock and swipe-up gesture
-- Atmospheric gradient wallpaper and translucent, softly outlined surfaces
+## Current interface
+- System wallpaper behind the home screen, using the Android wallpaper window feature
+- Four-column home screen with a compact date header
+- Up to five rows per page and horizontal home-screen swiping
+- Centered page indicator, floating Search button and fixed four-icon bottom dock
+- Long-press a home-screen icon to enter edit mode; drag within a page to reposition
+- Spring-scale lift animation and long-press haptic feedback when dragging
+- Red minus controls in edit mode to customize shortcuts
+- App Library overlay with searchable list of all launchable apps
+- Saved home icon order and dock shortcuts
+- Home app registration and installed-app refresh when launcher resumes
+- Simulated lock-screen preview with date, large clock and swipe-up dismissal (not device authentication)
 
-**Limitations:** This is not actual Apple iOS or an Apple launcher. App icons are the installed Android apps' original icons. The glass look currently uses transparency, gradients, and outlines; it does not implement true iOS 26 refraction or backdrop blur. The lock screen is an in-app **preview only** and does not replace or bypass Android device security. Full drag-and-drop icon placement, folders, widget hosting, and system wallpaper integration are not yet implemented.
+## Build without Android Studio
+1. Visit [Build Android APK](https://github.com/JP-bott/mobile-launcher/actions/workflows/build-apk.yml).
+2. Open the newest successful workflow run.
+3. Scroll down to **Artifacts** and download `LiquidLauncher-debug-apk`.
+4. Extract the ZIP and install `app-debug.apk` on Android 8.0+.
 
-## Build APK without Android Studio
-1. Visit [GitHub Actions](https://github.com/JP-bott/mobile-launcher/actions/workflows/build-apk.yml).
-2. Open the newest **Build Android APK** run, or choose **Run workflow**.
-3. Confirm **Build debug APK** and **Upload APK** succeeded.
-4. Download the **LiquidLauncher-debug-apk** artifact and unzip it.
-5. Transfer `app-debug.apk` to your Android phone and install it.
+## Important limitations
+- The project is a **working prototype**, not a finished pixel-accurate replica of iOS 26.
+- No Apple proprietary icons, system assets, Control Center or real lock-screen replacement.
+- Dragging is supported **within one home page**. Cross-page dragging, folders, true Android widget hosting, icon themes and complete home-page editing are not yet implemented.
+- System wallpaper appearance may vary with OEM Android wallpaper and navigation settings.
+- A successful CI build verifies compilation, but **does not verify runtime behavior, FPS, battery life, visual quality or compatibility with your device**.
 
-## Testing
-- Start the app and verify installed applications appear.
-- Tap an app to launch it and use Android Home to return to the launcher.
-- Swipe horizontally to move between pages and reach App Library.
-- Long-press an icon to customize Home or Dock; close and reopen to confirm settings persist.
-- Open the Lock preview and swipe up to return.
-- Set Liquid Launcher as default under Android Settings → Default apps → Home app only after confirming it works on your device.
-- You can restore the original default launcher in Android Settings at any time.
+## Device test checklist
+1. Open launcher and confirm the system wallpaper is visible.
+2. Launch an application and press Home to return.
+3. Long-press an icon, drag it to another grid position and tap Done.
+4. Restart the launcher to verify icon order and dock shortcuts remain saved.
+5. Swipe between pages and open Search/App Library.
+6. Enter and exit the simulated lock preview.
+7. Restore your original Home app in Android Settings if needed.
 
-This project is a prototype. GitHub Actions compilation confirms a build only, not correct behavior on all devices. Debug builds are intended for testing, not store release.
+For stability testing, keep the original launcher installed and available until this one has been tested on your phone.
