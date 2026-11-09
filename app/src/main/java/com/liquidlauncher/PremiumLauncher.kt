@@ -97,7 +97,7 @@ fun PremiumLauncher(apps: List<LauncherApp>, store: LauncherStore) {
                 home = apps.take(APPS_PER_PAGE).map { it.key }
                 store.saveKeys("home", home.orEmpty())
             } else {
-                val cleaned = home.orEmpty().filter { it in known }.distinct()
+                val cleaned = HomeLayoutEngine.mergeInstalled(home.orEmpty(), known, folders.map { it.token }.toSet())
                 if (cleaned != home) {
                     home = cleaned
                     store.saveKeys("home", cleaned)
@@ -142,7 +142,7 @@ fun PremiumLauncher(apps: List<LauncherApp>, store: LauncherStore) {
     }
 
     val homeKeys = home.orEmpty().filter { (it in byKey || folders.any { folder -> folder.token == it }) && it !in dock.orEmpty() }
-    val pageCount = maxOf(1, (homeKeys.size + APPS_PER_PAGE - 1) / APPS_PER_PAGE)
+    val pageCount = HomeLayoutEngine.pageCount(homeKeys)
     val pager = rememberPagerState(pageCount = { pageCount })
     BackHandler(editing || libraryOpen || previewOpen || settingsOpen || widgetsOpen || openFolderId != null || pager.currentPage > 0) {
         when {
@@ -198,7 +198,7 @@ fun PremiumLauncher(apps: List<LauncherApp>, store: LauncherStore) {
                     userScrollEnabled = !editing,
                     beyondViewportPageCount = 1
                 ) { page ->
-                    val pageKeys = homeKeys.drop(page * APPS_PER_PAGE).take(APPS_PER_PAGE)
+                    val pageKeys = HomeLayoutEngine.page(homeKeys, page)
                     Column(
                         Modifier.fillMaxSize().padding(horizontal = 12.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
@@ -250,10 +250,8 @@ fun PremiumLauncher(apps: List<LauncherApp>, store: LauncherStore) {
                                                                     .coerceIn(0, homeKeys.size)
                                                             }
                                                             if (from in homeKeys.indices && destination != from) {
-                                                                val reordered = homeKeys.toMutableList()
-                                                                val moved = reordered.removeAt(from)
-                                                                val index = destination.coerceIn(0, reordered.size)
-                                                                reordered.add(index, moved)
+                                                                val index = destination.coerceIn(0, homeKeys.lastIndex)
+                                                                val reordered = HomeLayoutEngine.reorder(homeKeys, from, destination)
                                                                 persistHome(reordered + home.orEmpty().filterNot { it in reordered })
                                                                 if (index / APPS_PER_PAGE != page) {
                                                                     scope.launch { pager.animateScrollToPage((index / APPS_PER_PAGE).coerceAtMost(pageCount - 1)) }
@@ -512,12 +510,7 @@ Box(
                                 val folder = settings.createFolder(source.key, target.key)
                                 folders = folders + folder
                                 settings.saveFolders(folders)
-                                val updated = home.orEmpty().toMutableList()
-                                val first = updated.indexOf(source.key)
-                                updated.remove(source.key)
-                                updated.remove(target.key)
-                                updated.add(first.coerceIn(0, updated.size), folder.token)
-                                persistHome(updated)
+                                persistHome(HomeLayoutEngine.createFolderLayout(home.orEmpty(), source.key, target.key, folder.token))
                                 folderSource = null
                                 openFolderId = folder.id
                             }) { Text(target.label) }
