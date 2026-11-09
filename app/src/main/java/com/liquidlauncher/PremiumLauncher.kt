@@ -238,13 +238,24 @@ fun PremiumLauncher(apps: List<LauncherApp>, store: LauncherStore) {
                                                             val newCol = (colIndex + (dragX / cellPx).roundToInt()).coerceIn(0, 3)
                                                             val newRow = (rowIndex + (dragY / rowPx).roundToInt()).coerceIn(0, 4)
                                                             val from = page * APPS_PER_PAGE + rowIndex * 4 + colIndex
-                                                            val destination = (page * APPS_PER_PAGE + newRow * 4 + newCol)
-                                                                .coerceIn(0, homeKeys.lastIndex.coerceAtLeast(0))
-                                                            if (from in homeKeys.indices && destination in homeKeys.indices && from != destination) {
+                                                            // Drag beyond the horizontal edge to move between pages.
+                                                            val destination = when {
+                                                                dragX > cellPx * 1.75f && page < pageCount - 1 ->
+                                                                    ((page + 1) * APPS_PER_PAGE).coerceAtMost(homeKeys.size)
+                                                                dragX < -cellPx * 1.75f && page > 0 ->
+                                                                    (page * APPS_PER_PAGE - 1).coerceAtLeast(0)
+                                                                else -> (page * APPS_PER_PAGE + newRow * 4 + newCol)
+                                                                    .coerceIn(0, homeKeys.size)
+                                                            }
+                                                            if (from in homeKeys.indices && destination != from) {
                                                                 val reordered = homeKeys.toMutableList()
                                                                 val moved = reordered.removeAt(from)
-                                                                reordered.add(destination, moved)
+                                                                val index = destination.coerceIn(0, reordered.size)
+                                                                reordered.add(index, moved)
                                                                 persistHome(reordered + home.orEmpty().filterNot { it in reordered })
+                                                                if (index / APPS_PER_PAGE != page) {
+                                                                    scope.launch { pager.animateScrollToPage((index / APPS_PER_PAGE).coerceAtMost(pageCount - 1)) }
+                                                                }
                                                             }
                                                             dragX = 0f; dragY = 0f; dragging = false
                                                         },
