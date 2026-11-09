@@ -12,6 +12,8 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.*
@@ -64,6 +66,12 @@ fun PremiumLauncher(apps: List<LauncherApp>, store: LauncherStore) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val haptics = LocalHapticFeedback.current
+    val settings = remember { LayoutManager(context) }
+    var settingsOpen by remember { mutableStateOf(false) }
+    var settingsVersion by remember { mutableIntStateOf(0) }
+    var folders by remember { mutableStateOf(settings.folders()) }
+    var openFolderId by remember { mutableStateOf<String?>(null) }
+    var folderSource by remember { mutableStateOf<LauncherApp?>(null) }
     val byKey = remember(apps) { apps.associateBy { it.key } }
     var home by remember { mutableStateOf(store.loadKeys("home")) }
     var dock by remember { mutableStateOf(store.loadKeys("dock")) }
@@ -75,7 +83,7 @@ fun PremiumLauncher(apps: List<LauncherApp>, store: LauncherStore) {
 
     LaunchedEffect(apps) {
         if (apps.isNotEmpty()) {
-            val known = apps.map { it.key }.toSet()
+            val known = apps.map { it.key }.toSet() + folders.map { it.token }
             if (home == null) {
                 // Show only the first page on first launch; full catalog remains in App Library.
                 home = apps.take(APPS_PER_PAGE).map { it.key }
@@ -125,12 +133,14 @@ fun PremiumLauncher(apps: List<LauncherApp>, store: LauncherStore) {
         }
     }
 
-    val homeKeys = home.orEmpty().filter { it in byKey && it !in dock.orEmpty() }
+    val homeKeys = home.orEmpty().filter { (it in byKey || folders.any { folder -> folder.token == it }) && it !in dock.orEmpty() }
     val pageCount = maxOf(1, (homeKeys.size + APPS_PER_PAGE - 1) / APPS_PER_PAGE)
     val pager = rememberPagerState(pageCount = { pageCount })
-    BackHandler(editing || libraryOpen || previewOpen || pager.currentPage > 0) {
+    BackHandler(editing || libraryOpen || previewOpen || settingsOpen || openFolderId != null || pager.currentPage > 0) {
         when {
             previewOpen -> previewOpen = false
+            openFolderId != null -> openFolderId = null
+            settingsOpen -> settingsOpen = false
             libraryOpen -> { libraryOpen = false; search = "" }
             editing -> editing = false
             else -> scope.launch { pager.animateScrollToPage(0) }
@@ -163,7 +173,10 @@ fun PremiumLauncher(apps: List<LauncherApp>, store: LauncherStore) {
                     } else {
                         Spacer(Modifier.width(38.dp))
                         Spacer(Modifier.weight(1f))
-                        CircleAction("•••") { previewOpen = true }
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            CircleAction("◈") { previewOpen = true }
+                            CircleAction("•••") { settingsOpen = true }
+                        }
                     }
                 }
 
@@ -186,24 +199,26 @@ fun PremiumLauncher(apps: List<LauncherApp>, store: LauncherStore) {
                             val cellWidth = maxWidth / 4
                             val cellHeight = minOf(102.dp, maxHeight / 5)
                             val density = LocalDensity.current
-                            val icons = pageKeys.mapNotNull { byKey[it] }
+                            val icons = pageKeys
                             Column {
                                 icons.chunked(4).forEachIndexed { rowIndex, row ->
                                     Row(
                                         Modifier.fillMaxWidth().height(cellHeight),
                                         horizontalArrangement = Arrangement.SpaceEvenly
                                     ) {
-                                        row.forEachIndexed { colIndex, app ->
+                                        row.forEachIndexed { colIndex, key ->
+                                            val app = byKey[key]
+                                            val folder = folders.firstOrNull { it.token == key }
                                             Box(Modifier.weight(1f), contentAlignment = Alignment.TopCenter) {
-                                                var dragX by remember(app.key) { mutableFloatStateOf(0f) }
-                                                var dragY by remember(app.key) { mutableFloatStateOf(0f) }
-                                                var dragging by remember(app.key) { mutableStateOf(false) }
+                                                var dragX by remember(key) { mutableFloatStateOf(0f) }
+                                                var dragY by remember(key) { mutableFloatStateOf(0f) }
+                                                var dragging by remember(key) { mutableStateOf(false) }
                                                 val cellPx = with(density) { cellWidth.toPx() }
                                                 val rowPx = with(density) { cellHeight.toPx() }
                                                 val activeScale by animateFloatAsState(if (dragging) 1.12f else 1f, animationSpec = spring(), label = "Drag scale")
-                                                val gesture = Modifier.pointerInput(app.key, page) {
+                                                val gesture = Modifier.pointerInput(key, page) {
                                                     detectDragGesturesAfterLongPress(
-                                                        onDragStart = { editing = true; dragging = true; haptics.performHapticFeedback(HapticFeedbackType.LongPress) },
+                                                        onDragStart = { editing = true; dragging = true; if (settings.haptics) haptics.performHapticFeedback(HapticFeedbackType.LongPress) },
                                                         onDrag = { change, delta ->
                                                             change.consume()
                                                             dragX += delta.x
@@ -228,16 +243,30 @@ fun PremiumLauncher(apps: List<LauncherApp>, store: LauncherStore) {
                                                         }
                                                     )
                                                 }
-                                                HomeIcon(
-                                                    app = app,
-                                                    editing = editing,
-                                                    onClick = { launch(app) },
-                                                    onOptions = { optionsFor = app },
-                                                    modifier = gesture
-                                                        .offset { IntOffset(dragX.roundToInt(), dragY.roundToInt()) }
-                                                        .graphicsLayer { scaleX = activeScale; scaleY = activeScale }
-                                                        .zIndex(if (dragging) 10f else 0f)
-                                                )
+                                                if (app != null) {
+                                                    HomeIcon(
+                                                        app = app,
+                                                        editing = editing,
+                                                        showLabel = settings.showLabels,
+                                                        iconSize = settings.iconSize,
+                                                        onClick = { launch(app) },
+                                                        onOptions = { optionsFor = app },
+                                                        modifier = gesture
+                                                            .offset { IntOffset(dragX.roundToInt(), dragY.roundToInt()) }
+                                                            .graphicsLayer { scaleX = activeScale; scaleY = activeScale }
+                                                            .zIndex(if (dragging) 10f else 0f)
+                                                    )
+                                                } else if (folder != null) {
+                                                    FolderIcon(
+                                                        folder = folder,
+                                                        apps = byKey,
+                                                        editing = editing,
+                                                        modifier = gesture
+                                                            .offset { IntOffset(dragX.roundToInt(), dragY.roundToInt()) }
+                                                            .graphicsLayer { scaleX = activeScale; scaleY = activeScale }
+                                                            .zIndex(if (dragging) 10f else 0f)
+                                                    ) { openFolderId = folder.id }
+                                                }
                                             }
                                         }
                                         repeat(4 - row.size) {
@@ -288,7 +317,7 @@ Box(
                         dock.orEmpty().mapNotNull { byKey[it] }.forEach { app ->
                             Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
                                 HomeIcon(
-                                    app = app, editing = editing, showLabel = false,
+                                    app = app, editing = editing, showLabel = false, iconSize = settings.iconSize,
                                     onClick = { launch(app) },
                                     onOptions = { optionsFor = app }
                                 )
@@ -366,12 +395,94 @@ Box(
                             else persistHome(home.orEmpty() + app.key)
                             optionsFor = null
                         }) { Text(if (inHome) "Remove from Home" else "Add to Home") }
+                        if (inHome && !inDock) {
+                            TextButton(onClick = {
+                                folderSource = app
+                                optionsFor = null
+                            }) { Text("Create folder with…") }
+                            val index = home.orEmpty().indexOf(app.key)
+                            if (index >= 0 && home.orEmpty().size > 1) {
+                                TextButton(onClick = {
+                                    val copy = home.orEmpty().toMutableList()
+                                    copy.removeAt(index)
+                                    copy.add((index + 20).coerceAtMost(copy.size), app.key)
+                                    persistHome(copy)
+                                    optionsFor = null
+                                }) { Text("Move toward next page") }
+                            }
+                        }
                         Text("The app remains available in App Library.", fontSize = 12.sp)
                     }
                 },
                 confirmButton = { TextButton(onClick = { optionsFor = null }) { Text("Done") } }
             )
         }
+        if (settingsOpen) {
+            LauncherSettings(settings) {
+                settingsOpen = false
+                settingsVersion++
+            }
+        }
+        val displayedFolder = folders.firstOrNull { it.id == openFolderId }
+        if (displayedFolder != null) {
+            FolderSheet(
+                folder = displayedFolder,
+                appMap = byKey,
+                onLaunch = { launch(it); openFolderId = null },
+                onClose = { openFolderId = null },
+                onRename = { title ->
+                    folders = folders.map { if (it.id == displayedFolder.id) it.copy(title = title) else it }
+                    settings.saveFolders(folders)
+                },
+                onRemoveApp = { key ->
+                    val remaining = displayedFolder.apps - key
+                    folders = folders.filterNot { it.id == displayedFolder.id }
+                    val updated = home.orEmpty().toMutableList()
+                    val idx = updated.indexOf(displayedFolder.token)
+                    if (idx >= 0) {
+                        updated.removeAt(idx)
+                        if (remaining.size <= 1) {
+                            remaining.firstOrNull()?.let { updated.add(idx, it) }
+                        } else {
+                            folders = folders + displayedFolder.copy(apps = remaining)
+                            updated.add(idx, displayedFolder.token)
+                        }
+                        updated.add(key)
+                        persistHome(updated)
+                    }
+                    settings.saveFolders(folders)
+                    if (remaining.size <= 1) openFolderId = null
+                }
+            )
+        }
+        folderSource?.let { source ->
+            val candidates = home.orEmpty().mapNotNull { byKey[it] }.filter { it.key != source.key }
+            AlertDialog(
+                onDismissRequest = { folderSource = null },
+                title = { Text("Create a folder") },
+                text = {
+                    Column(Modifier.heightIn(max = 350.dp).verticalScroll(rememberScrollState())) {
+                        candidates.forEach { target ->
+                            TextButton(onClick = {
+                                val folder = settings.createFolder(source.key, target.key)
+                                folders = folders + folder
+                                settings.saveFolders(folders)
+                                val updated = home.orEmpty().toMutableList()
+                                val first = updated.indexOf(source.key)
+                                updated.remove(source.key)
+                                updated.remove(target.key)
+                                updated.add(first.coerceIn(0, updated.size), folder.token)
+                                persistHome(updated)
+                                folderSource = null
+                                openFolderId = folder.id
+                            }) { Text(target.label) }
+                        }
+                    }
+                },
+                confirmButton = { TextButton(onClick = { folderSource = null }) { Text("Cancel") } }
+            )
+        }
+
     }
 }
 
@@ -410,7 +521,8 @@ private fun HomeIcon(
     onClick: () -> Unit,
     onOptions: () -> Unit,
     modifier: Modifier = Modifier,
-    showLabel: Boolean = true
+    showLabel: Boolean = true,
+    iconSize: Int = 61
 ) {
     Column(
         modifier.clickable { onClick() }
@@ -422,7 +534,7 @@ private fun HomeIcon(
             Image(
                 bitmap = remember(app.key) { app.icon.bitmapForIcon(160).asImageBitmap() },
                 contentDescription = app.label,
-                modifier = Modifier.size(61.dp)
+                modifier = Modifier.size(iconSize.dp)
                     .shadow(3.dp, RoundedCornerShape(16.dp))
                     .clip(RoundedCornerShape(16.dp))
             )
@@ -442,6 +554,43 @@ private fun HomeIcon(
                 color = ink, maxLines = 1, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center
             )
         }
+    }
+}
+
+@Composable
+private fun FolderIcon(
+    folder: HomeFolder,
+    apps: Map<String, LauncherApp>,
+    editing: Boolean,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit
+) {
+    Column(
+        modifier.width(80.dp).clickable(onClick = onClick).padding(top = 5.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Column(
+            Modifier.size(61.dp).clip(RoundedCornerShape(17.dp))
+                .background(Color.White.copy(alpha = .36f)).padding(7.dp),
+            verticalArrangement = Arrangement.spacedBy(3.dp)
+        ) {
+            folder.apps.take(4).chunked(2).forEach { row ->
+                Row(horizontalArrangement = Arrangement.spacedBy(3.dp)) {
+                    row.forEach { key ->
+                        apps[key]?.let { app ->
+                            Image(
+                                bitmap = remember(key) { app.icon.bitmapForIcon(80).asImageBitmap() },
+                                contentDescription = app.label,
+                                modifier = Modifier.size(21.dp).clip(RoundedCornerShape(5.dp))
+                            )
+                        }
+                    }
+                }
+            }
+        }
+        Spacer(Modifier.height(5.dp))
+        Text(folder.title, color = Color.White, fontSize = 11.sp,
+            maxLines = 1, overflow = TextOverflow.Ellipsis)
     }
 }
 
