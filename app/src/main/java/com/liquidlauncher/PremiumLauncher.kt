@@ -178,7 +178,7 @@ fun PremiumLauncher(apps: List<LauncherApp>, store: LauncherStore) {
 
                         BoxWithConstraints(Modifier.fillMaxSize()) {
                             val cellWidth = maxWidth / 4
-                            val cellHeight = 102.dp
+                            val cellHeight = minOf(102.dp, maxHeight / 5)
                             val density = LocalDensity.current
                             val icons = pageKeys.mapNotNull { byKey[it] }
                             Column {
@@ -255,6 +255,16 @@ fun PremiumLauncher(apps: List<LauncherApp>, store: LauncherStore) {
                     }
                 }
 
+Box(
+                    Modifier.padding(top = 9.dp, bottom = 9.dp)
+                        .clip(RoundedCornerShape(25.dp))
+                        .background(Color(0x44FFFFFF))
+                        .clickable { libraryOpen = true }
+                        .padding(horizontal = 18.dp, vertical = 7.dp),
+                    contentAlignment = Alignment.Center
+                ) { Text("⌕  Search", color = ink, fontSize = 13.sp) }
+
+
                 Box(
                     Modifier.padding(horizontal = 14.dp)
                         .fillMaxWidth().height(88.dp)
@@ -278,15 +288,6 @@ fun PremiumLauncher(apps: List<LauncherApp>, store: LauncherStore) {
                         }
                     }
                 }
-
-                Box(
-                    Modifier.padding(top = 9.dp, bottom = 9.dp)
-                        .clip(RoundedCornerShape(25.dp))
-                        .background(Color(0x44FFFFFF))
-                        .clickable { libraryOpen = true }
-                        .padding(horizontal = 18.dp, vertical = 7.dp),
-                    contentAlignment = Alignment.Center
-                ) { Text("⌕  Search", color = ink, fontSize = 13.sp) }
             }
         }
 
