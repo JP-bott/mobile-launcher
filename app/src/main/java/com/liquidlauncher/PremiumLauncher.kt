@@ -131,14 +131,11 @@ fun PremiumLauncher(apps: List<LauncherApp>, store: LauncherStore) {
         }
     }
 
-    Box(Modifier.fillMaxSize().background(
-        Brush.linearGradient(listOf(Color(0xFF14273F), Color(0xFF435F7A), Color(0xFF9E8096)))
-    )) {
-        // With FLAG_SHOW_WALLPAPER set in the activity, a transparent home surface
-        // will show the user's live wallpaper. Gradient above is the safe fallback.
+    Box(Modifier.fillMaxSize()) {
+        // Android's HOME wallpaper is shown behind this transparent window.
         Box(
             Modifier.fillMaxSize().background(
-                Brush.verticalGradient(listOf(Color(0x44060B16), Color.Transparent, Color(0x77060B16)))
+                Brush.verticalGradient(listOf(Color(0x66060B16), Color(0x22060B16), Color(0x88060B16)))
             )
         )
         if (previewOpen) {
