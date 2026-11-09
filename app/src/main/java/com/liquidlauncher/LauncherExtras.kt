@@ -30,6 +30,7 @@ fun LauncherSettings(
     var labels by remember { mutableStateOf(manager.showLabels) }
     var scrim by remember { mutableStateOf(manager.darkScrim) }
     var haptics by remember { mutableStateOf(manager.haptics) }
+    var tint by remember { mutableStateOf(manager.tintIcons) }
     var size by remember { mutableFloatStateOf(manager.iconSize.toFloat()) }
     AlertDialog(
         onDismissRequest = onClose,
@@ -53,6 +54,10 @@ fun LauncherSettings(
                     Switch(checked = haptics, onCheckedChange = {
                         haptics = it; manager.haptics = it
                     })
+                }
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("Monochrome icons", Modifier.weight(1f))
+                    Switch(checked = tint, onCheckedChange = { tint = it; manager.tintIcons = it })
                 }
                 Spacer(Modifier.height(12.dp))
                 Text("Icon size: ${size.toInt()} dp")
