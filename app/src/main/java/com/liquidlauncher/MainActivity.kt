@@ -12,6 +12,7 @@ import androidx.activity.compose.setContent
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -35,6 +36,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.TextButton
 import kotlinx.coroutines.delay
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -59,10 +63,25 @@ class MainActivity : ComponentActivity() {
             .sortedBy { it.label.lowercase(Locale.getDefault()) }
     }
 
+    @OptIn(ExperimentalFoundationApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            val apps = remember { loadApps() }
+            var apps by remember { mutableStateOf(loadApps()) }
+            val prefs = remember { getSharedPreferences("launcher", MODE_PRIVATE) }
+            var pinned by remember { mutableStateOf(prefs.getString("dock", "") ?: "") }
+            val pinnedApps = remember(apps, pinned) {
+                val keys = pinned.split("|").filter { it.isNotBlank() }
+                val selected = keys.mapNotNull { key -> apps.find { it.packageName + "/" + it.activityName == key } }
+                if (keys.isEmpty()) apps.take(4) else selected
+            }
+            var chooserApp by remember { mutableStateOf<LaunchableApp?>(null) }
+            LaunchedEffect(Unit) {
+                while (true) {
+                    delay(30000)
+                    apps = loadApps()
+                }
+            }
             var locked by remember { mutableStateOf(false) }
             var search by remember { mutableStateOf("") }
             val context = LocalContext.current
@@ -103,7 +122,9 @@ class MainActivity : ComponentActivity() {
                                     modifier = Modifier.fillMaxWidth()
                                 )
                             }
-                            Spacer(Modifier.height(22.dp))
+                            Spacer(Modifier.height(12.dp))
+                            Text("Hold an app to pin or remove it from the dock", color = Color.White.copy(alpha = .85f), fontSize = 11.sp)
+                            Spacer(Modifier.height(16.dp))
                             val filtered = remember(apps, search) {
                                 apps.filter { it.label.contains(search, ignoreCase = true) }
                             }
@@ -114,7 +135,7 @@ class MainActivity : ComponentActivity() {
                                 verticalArrangement = Arrangement.spacedBy(22.dp)
                             ) {
                                 items(filtered, key = { it.packageName + "/" + it.activityName }) { app ->
-                                    AppTile(app) {
+                                    AppTile(app, onLongPress = { chooserApp = app }) {
                                         try {
                                             val launch = Intent(Intent.ACTION_MAIN)
                                                 .addCategory(Intent.CATEGORY_LAUNCHER)
@@ -134,7 +155,7 @@ class MainActivity : ComponentActivity() {
                                 horizontalArrangement = Arrangement.SpaceEvenly,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                apps.take(4).forEach { app ->
+                                pinnedApps.take(4).forEach { app ->
                                     Image(
                                         bitmap = remember(app.icon) { app.icon.toBitmap().asImageBitmap() },
                                         contentDescription = app.label,
@@ -153,15 +174,38 @@ class MainActivity : ComponentActivity() {
                             }
                         }
                     }
+                    chooserApp?.let { target ->
+                        val key = target.packageName + "/" + target.activityName
+                        val isPinned = pinnedApps.any { it.packageName + "/" + it.activityName == key }
+                        AlertDialog(
+                            onDismissRequest = { chooserApp = null },
+                            title = { Text(target.label) },
+                            text = { Text(if (isPinned) "Remove this shortcut from your dock?" else "Pin this app to your dock? Up to four apps can be pinned.") },
+                            confirmButton = {
+                                TextButton(onClick = {
+                                    val current = pinnedApps.map { it.packageName + "/" + it.activityName }.toMutableList()
+                                    if (isPinned) current.remove(key) else {
+                                        if (current.size >= 4) current.removeAt(current.lastIndex)
+                                        current.add(key)
+                                    }
+                                    pinned = current.joinToString("|")
+                                    prefs.edit().putString("dock", pinned).apply()
+                                    chooserApp = null
+                                }) { Text(if (isPinned) "Remove" else "Pin") }
+                            },
+                            dismissButton = { TextButton(onClick = { chooserApp = null }) { Text("Cancel") } }
+                        )
+                    }
                 }
             }
         }
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun AppTile(app: LaunchableApp, onClick: () -> Unit) {
-    Column(Modifier.fillMaxWidth().clickable(onClick = onClick), horizontalAlignment = Alignment.CenterHorizontally) {
+private fun AppTile(app: LaunchableApp, onLongPress: () -> Unit, onClick: () -> Unit) {
+    Column(Modifier.fillMaxWidth().combinedClickable(onClick = onClick, onLongClick = onLongPress), horizontalAlignment = Alignment.CenterHorizontally) {
         Image(
             bitmap = remember(app.icon) { app.icon.toBitmap().asImageBitmap() },
             contentDescription = app.label, modifier = Modifier.size(58.dp)
