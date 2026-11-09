@@ -12,6 +12,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
@@ -81,6 +82,10 @@ fun PremiumLauncher(apps: List<LauncherApp>, store: LauncherStore) {
     var previewOpen by remember { mutableStateOf(false) }
     var optionsFor by remember { mutableStateOf<LauncherApp?>(null) }
     var search by remember { mutableStateOf("") }
+    var selectedCategory by remember { mutableStateOf("All") }
+    val appearance = remember(settingsVersion) {
+        Triple(settings.showLabels, settings.darkScrim, settings.iconSize)
+    }
 
     LaunchedEffect(apps) {
         if (apps.isNotEmpty()) {
@@ -153,7 +158,7 @@ fun PremiumLauncher(apps: List<LauncherApp>, store: LauncherStore) {
         // Android's HOME wallpaper is shown behind this transparent window.
         Box(
             Modifier.fillMaxSize().background(
-                Brush.verticalGradient(listOf(Color(0x66060B16), Color(0x22060B16), Color(0x88060B16)))
+                Brush.verticalGradient(if (appearance.second) listOf(Color(0x66060B16), Color(0x22060B16), Color(0x88060B16)) else listOf(Color.Transparent, Color.Transparent))
             )
         )
         if (previewOpen) {
@@ -252,8 +257,8 @@ fun PremiumLauncher(apps: List<LauncherApp>, store: LauncherStore) {
                                                     HomeIcon(
                                                         app = app,
                                                         editing = editing,
-                                                        showLabel = settings.showLabels,
-                                                        iconSize = settings.iconSize,
+                                                        showLabel = appearance.first,
+                                                        iconSize = appearance.third,
                                                         onClick = { launch(app) },
                                                         onOptions = { optionsFor = app },
                                                         modifier = gesture
@@ -322,7 +327,7 @@ Box(
                         dock.orEmpty().mapNotNull { byKey[it] }.forEach { app ->
                             Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
                                 HomeIcon(
-                                    app = app, editing = editing, showLabel = false, iconSize = settings.iconSize,
+                                    app = app, editing = editing, showLabel = false, iconSize = appearance.third,
                                     onClick = { launch(app) },
                                     onOptions = { optionsFor = app }
                                 )
@@ -363,9 +368,27 @@ Box(
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
-                Spacer(Modifier.height(24.dp))
-                val shown = remember(apps, search) {
-                    apps.filter { it.label.contains(search, ignoreCase = true) }
+                Spacer(Modifier.height(12.dp))
+                Row(
+                    Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    val categories = listOf("All") + apps.map { it.category }.distinct().sorted()
+                    categories.forEach { category ->
+                        Box(
+                            Modifier.clip(RoundedCornerShape(17.dp))
+                                .background(if (selectedCategory == category) Color.White.copy(alpha = .35f) else Color.White.copy(alpha = .12f))
+                                .clickable { selectedCategory = category }
+                                .padding(horizontal = 12.dp, vertical = 8.dp)
+                        ) { Text(category, color = Color.White, fontSize = 12.sp) }
+                    }
+                }
+                Spacer(Modifier.height(16.dp))
+                val shown = remember(apps, search, selectedCategory) {
+                    apps.filter {
+                        it.label.contains(search, ignoreCase = true) &&
+                            (selectedCategory == "All" || it.category == selectedCategory)
+                    }
                 }
                 LazyVerticalGrid(
                     columns = GridCells.Fixed(4),
