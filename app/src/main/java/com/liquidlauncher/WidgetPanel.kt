@@ -22,7 +22,7 @@ import androidx.compose.ui.viewinterop.AndroidView
 private const val HOST_ID = 19026
 
 @Composable
-fun WidgetPanel(onClose: () -> Unit, onWidgetAdded: (Int) -> Unit = {}) {
+fun WidgetPanel(onClose: () -> Unit, onWidgetAdded: (Int) -> Unit = {}, onWidgetRemoved: (Int) -> Unit = {}) {
     val context = androidx.compose.ui.platform.LocalContext.current
     val manager = remember { AppWidgetManager.getInstance(context) }
     val host = remember { AppWidgetHost(context, HOST_ID) }
@@ -31,11 +31,9 @@ fun WidgetPanel(onClose: () -> Unit, onWidgetAdded: (Int) -> Unit = {}) {
     val picker = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { outcome ->
         val id = outcome.data?.getIntExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, -1) ?: -1
         if (outcome.resultCode == android.app.Activity.RESULT_OK && id > 0) {
-            val old = widgetId
             widgetId = id
             pref.edit().putInt("widget_id", id).apply()
             onWidgetAdded(id)
-            if (old > 0 && old != id) runCatching { host.deleteAppWidgetId(old) }
         } else if (id > 0) {
             runCatching { host.deleteAppWidgetId(id) }
         }
@@ -79,6 +77,7 @@ fun WidgetPanel(onClose: () -> Unit, onWidgetAdded: (Int) -> Unit = {}) {
                 )
             }
             TextButton(onClick = {
+                onWidgetRemoved(widgetId)
                 runCatching { host.deleteAppWidgetId(widgetId) }
                 widgetId = -1
                 pref.edit().remove("widget_id").apply()
