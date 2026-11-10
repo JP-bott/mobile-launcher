@@ -82,8 +82,8 @@ object PositionEngine {
         val a = tiles.firstOrNull { it.id == first } ?: return tiles
         val b = tiles.firstOrNull { it.id == second } ?: return tiles
         if (first == second || a.type != TileType.APP || b.type != TileType.APP) return tiles
-        return tiles.filterNot { it.id == first || it.id == second } +
-            a.copy(id = folder, type = TileType.FOLDER)
+        return (tiles.filterNot { it.id == first || it.id == second } +
+            a.copy(id = folder, type = TileType.FOLDER)).sortedWith(compareBy<HomeTile>({ it.page }, { it.row }, { it.column }))
     }
 }
 
