@@ -68,6 +68,20 @@ object PositionEngine {
         return tiles
     }
 
+    fun insertWidget(tiles: List<HomeTile>, id: String, spanRows: Int = 2, spanColumns: Int = 2): List<HomeTile> {
+        if (tiles.any { it.id == id }) return tiles
+        val lastPage = maxOf(0, tiles.maxOfOrNull { it.page } ?: 0)
+        for (page in 0..lastPage + 1) {
+            for (row in 0..ROWS - spanRows) {
+                for (column in 0..COLUMNS - spanColumns) {
+                    val target = HomeTile(id, TileType.WIDGET, page, row, column, spanRows, spanColumns)
+                    if (free(tiles, target)) return tiles + target
+                }
+            }
+        }
+        return tiles
+    }
+
     fun fromOrdered(keys: List<String>): List<HomeTile> =
         keys.distinct().mapIndexed { index, id ->
             HomeTile(id, if (id.startsWith("folder:")) TileType.FOLDER else TileType.APP,
