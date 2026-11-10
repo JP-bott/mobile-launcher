@@ -26,7 +26,7 @@ class MainActivity : ComponentActivity() {
                 val apps by produceState<List<LauncherApp>>(emptyList(), refreshToken) {
                     value = withContext(Dispatchers.IO) { store.installedApps() }
                 }
-                PremiumLauncher(apps = apps, store = store)
+                LauncherV5(apps = apps, store = store)
             }
         }
     }
