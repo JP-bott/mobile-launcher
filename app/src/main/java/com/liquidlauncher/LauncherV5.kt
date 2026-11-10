@@ -91,7 +91,7 @@ fun LauncherV5(apps: List<LauncherApp>, store: LauncherStore) {
 
     LaunchedEffect(apps) {
         if (apps.isNotEmpty()) {
-            val valid = apps.map { it.key }.toSet() + folders.map { it.token }
+            val valid = apps.map { it.key }.toSet() + folders.map { it.token } + tiles.orEmpty().filter { it.type == TileType.WIDGET }.map { it.id }
             if (tiles == null) {
                 // Migrate the previous launcher layout without discarding user choices.
                 val old = store.loadKeys("home")
@@ -183,6 +183,7 @@ fun LauncherV5(apps: List<LauncherApp>, store: LauncherStore) {
                         visible.forEach { tile ->
                             val app = byKey[tile.id]
                             val folder = folders.firstOrNull { it.token == tile.id }
+                            val widgetId = if (tile.type == TileType.WIDGET) tile.id.removePrefix("widget:").toIntOrNull() else null
                             var dx by remember(tile.id) { mutableFloatStateOf(0f) }
                             var dy by remember(tile.id) { mutableFloatStateOf(0f) }
                             var dragging by remember(tile.id) { mutableStateOf(false) }
@@ -238,7 +239,7 @@ fun LauncherV5(apps: List<LauncherApp>, store: LauncherStore) {
                             }
                             Box(
                                 Modifier.offset(x = cellW * tile.column, y = cellH * tile.row)
-                                    .size(cellW, cellH)
+                                    .size(cellW * tile.columnSpan, cellH * tile.rowSpan)
                                     .offset { IntOffset(dx.roundToInt(), dy.roundToInt()) }
                                     .graphicsLayer { scaleX = scale; scaleY = scale }
                                     .zIndex(if (dragging) 5f else 0f)
@@ -251,6 +252,10 @@ fun LauncherV5(apps: List<LauncherApp>, store: LauncherStore) {
                                         onOptions = { selected = app })
                                 } else if (folder != null) {
                                     V5Folder(folder, byKey) { folderOpen = folder.id }
+                                } else if (widgetId != null) {
+                                    HomeWidgetTile(widgetId, editing) {
+                                        save(tiles.orEmpty().filterNot { it.id == tile.id })
+                                    }
                                 }
                             }
                         }
@@ -404,7 +409,13 @@ fun LauncherV5(apps: List<LauncherApp>, store: LauncherStore) {
             settingsShown = false
             settingsRevision++
         }
-        if (widgetShown) WidgetPanel { widgetShown = false }
+        if (widgetShown) WidgetPanel(
+            onClose = { widgetShown = false },
+            onWidgetAdded = { id ->
+                save(PositionEngine.insertWidget(tiles.orEmpty(), "widget:$id"))
+                widgetShown = false
+            }
+        )
     }
 }
 
