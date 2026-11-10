@@ -56,7 +56,7 @@ fun LauncherSettings(
                     })
                 }
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("Monochrome icons", Modifier.weight(1f))
+                    Text("iOS-inspired app icons", Modifier.weight(1f))
                     Switch(checked = tint, onCheckedChange = { tint = it; manager.tintIcons = it })
                 }
                 Spacer(Modifier.height(12.dp))
