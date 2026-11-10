@@ -209,7 +209,7 @@ fun LauncherV5(apps: List<LauncherApp>, store: LauncherStore) {
                                         }
                                         val target = latestTiles.orEmpty().firstOrNull {
                                             it.id != tile.id && it.page == edgePage &&
-                                                targetRow to targetCol in PositionEngine.occupies(it)
+                                                (targetRow to targetCol) in PositionEngine.occupies(it)
                                         }
                                         val existing = latestTiles.orEmpty()
                                         when {
