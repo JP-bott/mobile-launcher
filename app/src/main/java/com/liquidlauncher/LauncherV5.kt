@@ -255,6 +255,7 @@ fun LauncherV5(apps: List<LauncherApp>, store: LauncherStore) {
                                 } else if (widgetId != null) {
                                     HomeWidgetTile(widgetId, editing) {
                                         save(tiles.orEmpty().filterNot { it.id == tile.id })
+                                        runCatching { android.appwidget.AppWidgetHost(context, 19026).deleteAppWidgetId(widgetId) }
                                     }
                                 }
                             }
@@ -414,6 +415,9 @@ fun LauncherV5(apps: List<LauncherApp>, store: LauncherStore) {
             onWidgetAdded = { id ->
                 save(PositionEngine.insertWidget(tiles.orEmpty(), "widget:$id"))
                 widgetShown = false
+            },
+            onWidgetRemoved = { id ->
+                save(tiles.orEmpty().filterNot { it.id == "widget:$id" })
             }
         )
     }
