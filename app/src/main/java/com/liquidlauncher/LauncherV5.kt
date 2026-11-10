@@ -172,7 +172,6 @@ fun LauncherV5(apps: List<LauncherApp>, store: LauncherStore) {
                         val density = LocalDensity.current
                         val cwPx = with(density) { cellW.toPx() }
                         val chPx = with(density) { cellH.toPx() }
-                        val dragState = remember { mutableStateOf<String?>(null) }
                         if (page == pages && editing) {
                             Box(Modifier.fillMaxSize().clickable {
                                 // New empty page becomes permanent when an icon is moved onto it.
@@ -188,7 +187,8 @@ fun LauncherV5(apps: List<LauncherApp>, store: LauncherStore) {
                             var dy by remember(tile.id) { mutableFloatStateOf(0f) }
                             var dragging by remember(tile.id) { mutableStateOf(false) }
                             val scale by animateFloatAsState(if (dragging) 1.12f else 1f, spring(), label = "iconLift")
-                            val gesture = Modifier.pointerInput(tile.id, page, tiles, folders, editing) {
+                            val latestTiles by rememberUpdatedState(tiles)
+                            val gesture = Modifier.pointerInput(tile.id, page) {
                                 detectDragGesturesAfterLongPress(
                                     onDragStart = {
                                         editing = true
@@ -207,11 +207,11 @@ fun LauncherV5(apps: List<LauncherApp>, store: LauncherStore) {
                                             dx < -cwPx * 1.7f && page > 0 -> page - 1
                                             else -> page
                                         }
-                                        val target = tiles.orEmpty().firstOrNull {
+                                        val target = latestTiles.orEmpty().firstOrNull {
                                             it.id != tile.id && it.page == edgePage &&
                                                 targetRow to targetCol in PositionEngine.occupies(it)
                                         }
-                                        val existing = tiles.orEmpty()
+                                        val existing = latestTiles.orEmpty()
                                         when {
                                             target != null && tile.type == TileType.APP &&
                                                 target.type == TileType.APP &&
